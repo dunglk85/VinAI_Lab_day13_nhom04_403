@@ -11,11 +11,13 @@ try:
     langfuse = Langfuse(
         public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
         secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-        host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+        host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+        base_url=os.getenv("LANGFUSE_BASE_URL", "https://us.cloud.langfuse.com")
     )
     
     if os.getenv("LANGFUSE_PUBLIC_KEY"):
-        print(f"INFO: Langfuse Client Initialized with Host: {os.getenv('LANGFUSE_HOST')}")
+        host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+        print(f"INFO: Langfuse Client Initialized with Base URL: {os.getenv('LANGFUSE_BASE_URL', "https://us.cloud.langfuse.com")}")
     else:
         print("WARNING: Langfuse Client: No API keys found.")
 
