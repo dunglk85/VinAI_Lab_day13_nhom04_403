@@ -10,18 +10,13 @@ from structlog.contextvars import bind_contextvars, clear_contextvars
 
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # TODO: Clear contextvars to avoid leakage between requests
+        # Xóa context cũ để tránh rò rỉ giữa các request
         clear_contextvars()
 
-        # TODO: Extract x-request-id from headers or generate a new one
-        # Use format: req-<8-char-hex>
-        header_request_id = request.headers.get("x-request-id")
-        if header_request_id:
-            correlation_id = header_request_id
-        else:
-            correlation_id = f"req-{uuid.uuid4().hex[:8]}"
+        # Lấy ID từ header hoặc tạo mới theo định dạng req-<8-char-hex>
+        correlation_id = request.headers.get("x-request-id") or f"req-{uuid.uuid4().hex[:8]}"
         
-        # TODO: Bind the correlation_id to structlog contextvars
+        # Gắn ID vào structlog để mọi log sau này đều mang ID này
         bind_contextvars(correlation_id=correlation_id)
         
         request.state.correlation_id = correlation_id
@@ -29,10 +24,9 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
         start = time.perf_counter()
         response = await call_next(request)
         
-        # TODO: Add the correlation_id and processing time to response headers
-        # response.headers["x-request-id"] = correlation_id
-        # response.headers["x-response-time-ms"] = ...
-        duration = time.perf_counter() - start
+        # Gắn ID và thời gian xử lý vào Response Header
+        duration = (time.perf_counter() - start) * 1000
         response.headers["x-request-id"] = correlation_id
-        response.headers["x-response-time-ms"] = str(duration * 1000)
+        response.headers["x-response-time-ms"] = f"{duration:.2f}"
+        
         return response

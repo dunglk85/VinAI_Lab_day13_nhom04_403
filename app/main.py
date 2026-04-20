@@ -3,12 +3,10 @@ from __future__ import annotations
 import os
 from dotenv import load_dotenv
 
-# MUST be called before any local imports that might use Langfuse
-load_dotenv()
+load_dotenv() # Tải biến môi trường từ .env
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from structlog.contextvars import bind_contextvars
 
 from .agent import LabAgent
@@ -24,14 +22,6 @@ configure_logging()
 log = get_logger()
 app = FastAPI(title="Day 13 Observability Lab")
 app.add_middleware(CorrelationIdMiddleware)
-
-# Mount static files
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
-@app.get("/dashboard")
-async def dashboard() -> FileResponse:
-    return FileResponse("app/static/index.html")
-
 agent = LabAgent()
 
 
@@ -57,13 +47,12 @@ async def metrics() -> dict:
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: Request, body: ChatRequest) -> ChatResponse:
-    # TODO: Enrich logs with request context (user_id_hash, session_id, feature, model, env)
-    # bind_contextvars(...)
+    # Làm giàu dữ liệu log với context của request
     bind_contextvars(
         user_id_hash=hash_user_id(body.user_id),
         session_id=body.session_id,
         feature=body.feature,
-        model="gpt-4o",
+        model="gpt-4o-mini",
         env=os.getenv("APP_ENV", "dev"),
     )
     
@@ -97,7 +86,7 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
             cost_usd=result.cost_usd,
             quality_score=result.quality_score,
         )
-    except Exception as exc:  # pragma: no cover
+    except Exception as exc:
         error_type = type(exc).__name__
         record_error(error_type)
         log.error(
