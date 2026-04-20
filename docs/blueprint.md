@@ -8,7 +8,7 @@
 | Trường | Thông tin |
 |--------|-----------|
 | **Tên Nhóm** | AI In Action - Day 13 Group |
-| **Kho Lưu Trữ** | d:/ai_in_action/old/ai_in_action_day13_group |
+| **Kho Lưu Trữ** | d:/AI In Action/Lab13-Observability |
 | **Số Thành Viên** | 3 |
 | **Ngôn Ngữ Chính** | Python + FastAPI |
 
@@ -85,10 +85,10 @@ Processors:
 
 #### c) **PII Scrubbing** (`app/pii.py`)
 Các mẫu regex được bảo vệ:
-- Email: `[\w\.-]+@[\w\.-]+\.\w+`
+- Email: `\b[\w\.-]+@[\w\.-]+\b`
 - SĐT Việt: `(?:\+84|0)[ \.-]?\d{3}[ \.-]?\d{3}[ \.-]?\d{3,4}`
 - CCCD: `\b\d{12}\b`
-- Thẻ tín dụng: `\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b`
+- Thẻ tín dụng: `\b(?:\d[ -]*?){13,16}\b`
 
 #### d) **Distributed Tracing** (`app/tracing.py`)
 ```python
@@ -189,7 +189,7 @@ Trace: "agent-chat" (root)
 
 | Alert | Severity | Điều kiện | Runbook |
 |---|---|---|---|
-| **high_latency_p95** | P2 | latency_p95_ms > 3000 trong 15m | Kiểm tra RAG vs LLM bottleneck |
+| **high_latency_p95** | P2 | latency_p95_ms > 2000 trong 5m | Kiểm tra RAG vs LLM bottleneck |
 | **high_error_rate** | P1 | error_rate_pct > 2 trong 5m | Rollback hoặc disable tools |
 | **cost_budget_spike** | P3 | hourly_cost_usd > 0.15 trong 30m | Rút ngắn prompt, route rẻ hơn |
 | **low_quality_score** | P2 | quality_score_avg < 0.75 trong 1h | Kiểm tra prompt templates |
@@ -339,7 +339,7 @@ Kiểm tra logs conform JSON schema
 **Bằng chứng:**
 - [app/tracing.py](app/tracing.py) - Langfuse integration
 - [app/agent.py](app/agent.py) - @observe decorator usage
-- [app/main.py](app/main.py#L47-L57) - bind_contextvars
+- [app/main.py](app/main.py#L62-L68) - bind_contextvars
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## 1. High latency P95
 - Severity: P2
-- Trigger: `latency_p95_ms > 3000 for 15m`
+- Trigger: `latency_p95_ms > 2000 for 5m`
 - Impact: Tail latency breaches SLO (3000ms)
 - First checks:
   1. Open top slow traces in the last 15m
