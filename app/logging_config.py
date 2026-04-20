@@ -23,14 +23,23 @@ class JsonlFileProcessor:
 
 
 
+def scrub_recursive(data: Any) -> Any:
+    if isinstance(data, dict):
+        return {k: scrub_recursive(v) for k, v in data.items()}
+    if isinstance(data, list):
+        return [scrub_recursive(x) for x in data]
+    if isinstance(data, str):
+        return scrub_text(data)
+    return data
+
+
 def scrub_event(_: Any, __: str, event_dict: dict[str, Any]) -> dict[str, Any]:
-    payload = event_dict.get("payload")
-    if isinstance(payload, dict):
-        event_dict["payload"] = {
-            k: scrub_text(v) if isinstance(v, str) else v for k, v in payload.items()
-        }
-    if "event" in event_dict and isinstance(event_dict["event"], str):
-        event_dict["event"] = scrub_text(event_dict["event"])
+    # We scrub everything except the timestamp and correlation_id to avoid 
+    # accidental redaction of metadata that might contain substrings like '4111'
+    skip_keys = {"ts", "correlation_id", "user_id_hash"}
+    for key, value in event_dict.items():
+        if key not in skip_keys:
+            event_dict[key] = scrub_recursive(value)
     return event_dict
 
 
