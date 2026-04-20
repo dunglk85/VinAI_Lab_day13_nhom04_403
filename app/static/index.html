@@ -61,6 +61,17 @@
             </div>
         </header>
 
+        <!-- Alerts moved to the top -->
+        <div id="alerts-container" class="mb-10 glass p-6 rounded-2xl shadow-xl hidden">
+            <h3 class="card-title mb-4 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                Active System Alerts
+            </h3>
+            <div id="alerts-list" class="space-y-3">
+                <!-- Alerts will be injected here -->
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- 1. Latency P50/P95/P99 -->
             <div class="glass p-6 rounded-2xl shadow-xl">
@@ -283,6 +294,30 @@
                 updateChart(charts.cost, last20.map(h => h.cost));
                 updateChart(charts.token, last20.map(h => h.tokens));
                 updateChart(charts.quality, last20.map(h => h.quality));
+
+                // Update Alerts
+                const alertWrapper = document.getElementById('alerts-container');
+                const alertContainer = document.getElementById('alerts-list');
+                
+                if (data.alerts && data.alerts.length > 0) {
+                    alertWrapper.classList.remove('hidden');
+                    alertContainer.innerHTML = data.alerts.map(a => `
+                        <div class="flex items-center justify-between p-3 rounded-lg ${a.severity === 'P1' ? 'bg-red-500/10 border border-red-500/20' : 'bg-amber-500/10 border border-amber-500/20'}">
+                            <div class="flex items-center gap-3">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${a.severity === 'P1' ? 'bg-red-500 text-white' : 'bg-amber-500 text-black'}">
+                                    ${a.severity}
+                                </span>
+                                <div>
+                                    <p class="text-sm font-semibold ${a.severity === 'P1' ? 'text-red-400' : 'text-amber-400'}">${a.name}</p>
+                                    <p class="text-xs text-slate-400">${a.msg}</p>
+                                </div>
+                            </div>
+                            <span class="text-[10px] text-slate-500">${new Date(a.ts * 1000).toLocaleTimeString()}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    alertWrapper.classList.add('hidden');
+                }
 
                 // Update timestamp
                 document.getElementById('last-update').innerText = 'Last updated: ' + new Date().toLocaleTimeString();
