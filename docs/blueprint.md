@@ -13,7 +13,7 @@
 | **Ngôn Ngữ Chính** | Python + FastAPI |
 
 ### Thành viên nhóm:
-- **Le Kim Dung**: Xử lý Logging & Bảo mật dữ liệu (PII)
+- **Le Kim Dung**: Xử lý Logging & Bảo mật dữ liệu (PII), dashboard
 - **Ngo Gia Bao**: Xây dựng Distributed Tracing & Enrichment
 - **Nguyen Duong Ninh**: Định nghĩa SLO & Cấu hình Alert
 
