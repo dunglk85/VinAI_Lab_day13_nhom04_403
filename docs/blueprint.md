@@ -8,7 +8,7 @@
 | Trường | Thông tin |
 |--------|-----------|
 | **Tên Nhóm** | AI In Action - Day 13 Group |
-| **Kho Lưu Trữ** | d:/AI In Action/Lab13-Observability |
+| **Kho Lưu Trữ** | https://github.com/dunglk85/VinAI_Lab_day13_nhom04_403 |
 | **Số Thành Viên** | 3 |
 | **Ngôn Ngữ Chính** | Python + FastAPI |
 
