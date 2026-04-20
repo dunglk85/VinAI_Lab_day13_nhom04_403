@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+import time
 from collections import Counter
 from statistics import mean
 
+# Internal state
 REQUEST_LATENCIES: list[int] = []
 REQUEST_COSTS: list[float] = []
 REQUEST_TOKENS_IN: list[int] = []
 REQUEST_TOKENS_OUT: list[int] = []
+QUALITY_SCORES: list[float] = []
 ERRORS: Counter[str] = Counter()
 TRAFFIC: int = 0
-QUALITY_SCORES: list[float] = []
 
+# History for charts (limit to last 50 points)
+HISTORY: list[dict] = []
+MAX_HISTORY = 50
 
 def record_request(latency_ms: int, cost_usd: float, tokens_in: int, tokens_out: int, quality_score: float) -> None:
     global TRAFFIC
@@ -20,12 +25,21 @@ def record_request(latency_ms: int, cost_usd: float, tokens_in: int, tokens_out:
     REQUEST_TOKENS_IN.append(tokens_in)
     REQUEST_TOKENS_OUT.append(tokens_out)
     QUALITY_SCORES.append(quality_score)
-
+    
+    # Update history point
+    HISTORY.append({
+        "timestamp": time.time(),
+        "latency": latency_ms,
+        "cost": cost_usd,
+        "tokens": tokens_in + tokens_out,
+        "quality": quality_score
+    })
+    if len(HISTORY) > MAX_HISTORY:
+        HISTORY.pop(0)
 
 
 def record_error(error_type: str) -> None:
     ERRORS[error_type] += 1
-
 
 
 def percentile(values: list[int], p: int) -> float:
@@ -34,7 +48,6 @@ def percentile(values: list[int], p: int) -> float:
     items = sorted(values)
     idx = max(0, min(len(items) - 1, round((p / 100) * len(items) + 0.5) - 1))
     return float(items[idx])
-
 
 
 def snapshot() -> dict:
@@ -49,4 +62,10 @@ def snapshot() -> dict:
         "tokens_out_total": sum(REQUEST_TOKENS_OUT),
         "error_breakdown": dict(ERRORS),
         "quality_avg": round(mean(QUALITY_SCORES), 4) if QUALITY_SCORES else 0.0,
+        "history": HISTORY,
+        "slo": {
+            "latency_p95_limit": 2000,
+            "error_rate_limit": 0.05,
+            "quality_min": 0.7
+        }
     }

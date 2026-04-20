@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Ops Dashboard | Lab 13</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-title {
+            color: #94a3b8;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .slo-line {
+            border-top: 1px dashed #ef4444;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body class="p-8">
+    <div class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <h1
+                    class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500">
+                    AI Observability Dashboard
+                </h1>
+                <p class="text-slate-400">Live system metrics & performance monitoring</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div id="status-dot" class="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+                <span id="last-update" class="text-xs text-slate-500 italic">Updating...</span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- 1. Latency P50/P95/P99 -->
+            <div class="glass p-6 rounded-2xl shadow-xl">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="card-title">Latency (P50/P95/P99)</h3>
+                    <span class="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded">ms</span>
+                </div>
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <p class="stat-value" id="latency-p95">0</p>
+                        <p class="text-xs text-slate-500">P95 Latency</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-slate-300">P50: <span id="latency-p50"
+                                class="text-blue-400">0</span></p>
+                        <p class="text-sm font-semibold text-slate-300">P99: <span id="latency-p99"
+                                class="text-indigo-400">0</span></p>
+                    </div>
+                </div>
+                <div class="h-32 w-full">
+                    <canvas id="latencyChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 2. Traffic -->
+            <div class="glass p-6 rounded-2xl shadow-xl">
+                <h3 class="card-title mb-4">Traffic (Requests)</h3>
+                <div class="mb-6">
+                    <p class="stat-value" id="traffic-count">0</p>
+                    <p class="text-xs text-slate-500">Total requests since startup</p>
+                </div>
+                <div class="h-32 w-full">
+                    <canvas id="trafficChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 3. Error Rate -->
+            <div class="glass p-6 rounded-2xl shadow-xl">
+                <h3 class="card-title mb-4">Error Rate & Reliability</h3>
+                <div class="mb-6 flex justify-between items-center">
+                    <div>
+                        <p class="stat-value text-rose-500" id="error-rate" style="-webkit-text-fill-color: #f43f5e">0%
+                        </p>
+                        <p class="text-xs text-slate-500">Current failure rate</p>
+                    </div>
+                    <div id="error-breakdown" class="text-xs text-slate-400 italic">No errors detected</div>
+                </div>
+                <div class="h-32 w-full">
+                    <canvas id="errorChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 4. Cost over time -->
+            <div class="glass p-6 rounded-2xl shadow-xl">
+                <h3 class="card-title mb-4">Estimated Cost</h3>
+                <div class="mb-6">
+                    <p class="stat-value text-emerald-400" id="total-cost" style="-webkit-text-fill-color: #34d399">
+                        $0.0000</p>
+                    <p class="text-xs text-slate-500">Total accumulated LLM spend</p>
+                </div>
+                <div class="h-32 w-full">
+                    <canvas id="costChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 5. Tokens in/out -->
+            <div class="glass p-6 rounded-2xl shadow-xl">
+                <h3 class="card-title mb-4">Token Usage</h3>
+                <div class="mb-6 grid grid-cols-2">
+                    <div>
+                        <p class="stat-value text-sm" id="tokens-in"
+                            style="font-size: 1.5rem; -webkit-text-fill-color: #a78bfa">0</p>
+                        <p class="text-xs text-slate-500">Input Tokens</p>
+                    </div>
+                    <div>
+                        <p class="stat-value text-sm" id="tokens-out"
+                            style="font-size: 1.5rem; -webkit-text-fill-color: #c084fc">0</p>
+                        <p class="text-xs text-slate-500">Output Tokens</p>
+                    </div>
+                </div>
+                <div class="h-32 w-full">
+                    <canvas id="tokenChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 6. Quality Proxy -->
+            <div class="glass p-6 rounded-2xl shadow-xl">
+                <h3 class="card-title mb-4">Quality Score (Avg)</h3>
+                <div class="mb-6">
+                    <p class="stat-value text-amber-400" id="quality-score" style="-webkit-text-fill-color: #fbbf24">
+                        0.00</p>
+                    <p class="text-xs text-slate-500">Heuristic-based quality metric</p>
+                </div>
+                <div class="h-32 w-full">
+                    <canvas id="qualityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-12 flex justify-between items-center text-slate-500 text-sm border-t border-slate-800 pt-6">
+            <div>&copy; 2026 VinUni-AI - Observability Lab</div>
+            <div class="flex gap-4">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span> API
+                    Stable</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Tracing
+                    Active</span>
+            </div>
+        </footer>
+    </div>
+    <script>
+        const charts = {};
+        const SLOs = {
+            latency: 2000, // 2s
+            error: 5 // 5%
+        };
+
+        function createChart(ctxId, color, label, sloValue = null) {
+            const ctx = document.getElementById(ctxId).getContext('2d');
+
+            const plugins = [];
+            if (sloValue !== null) {
+                plugins.push({
+                    id: 'sloLine',
+                    afterDraw: (chart) => {
+                        const { ctx, chartArea: { left, right, top, bottom }, scales: { y } } = chart;
+                        const yPos = y.getPixelForValue(sloValue);
+                        if (yPos < top || yPos > bottom) return;
+
+                        ctx.save();
+                        ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+                        ctx.setLineDash([5, 5]);
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(left, yPos);
+                        ctx.lineTo(right, yPos);
+                        ctx.stroke();
+
+                        ctx.fillStyle = 'rgba(239, 68, 68, 0.8)';
+                        ctx.font = '10px Inter';
+                        ctx.fillText('SLO', right - 25, yPos - 5);
+                        ctx.restore();
+                    }
+                });
+            }
+
+            return new Chart(ctx, {
+                type: 'line',
+                plugins: plugins,
+                data: {
+                    labels: Array(20).fill(''),
+                    datasets: [{
+                        label: label,
+                        data: Array(20).fill(0),
+                        borderColor: color,
+                        backgroundColor: color + '20',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { display: false },
+                            suggestedMax: sloValue ? sloValue * 1.5 : undefined
+                        }
+                    }
+                }
+            });
+        }
+
+        charts.latency = createChart('latencyChart', '#3b82f6', 'Latency', SLOs.latency);
+        charts.traffic = createChart('trafficChart', '#6366f1', 'Traffic');
+        charts.error = createChart('errorChart', '#f43f5e', 'Errors', SLOs.error);
+        charts.cost = createChart('costChart', '#10b981', 'Cost');
+        charts.token = createChart('tokenChart', '#a855f7', 'Tokens');
+        charts.quality = createChart('qualityChart', '#f59e0b', 'Quality');
+
+        async function updateDashboard() {
+            try {
+                const response = await fetch('/metrics');
+                const data = await response.json();
+
+                // Update Big Numbers
+                document.getElementById('latency-p50').innerText = Math.round(data.latency_p50);
+                document.getElementById('latency-p95').innerText = Math.round(data.latency_p95);
+                document.getElementById('latency-p99').innerText = Math.round(data.latency_p99);
+                document.getElementById('traffic-count').innerText = data.traffic;
+                document.getElementById('total-cost').innerText = '$' + data.total_cost_usd.toFixed(4);
+                document.getElementById('tokens-in').innerText = data.tokens_in_total;
+                document.getElementById('tokens-out').innerText = data.tokens_out_total;
+                document.getElementById('quality-score').innerText = data.quality_avg.toFixed(2);
+
+                const errorRate = data.traffic > 0 ? (Object.values(data.error_breakdown).reduce((a, b) => a + b, 0) / data.traffic * 100).toFixed(1) : 0;
+                document.getElementById('error-rate').innerText = errorRate + '%';
+
+                if (Object.keys(data.error_breakdown).length > 0) {
+                    document.getElementById('error-breakdown').innerText = Object.entries(data.error_breakdown)
+                        .map(([k, v]) => `${k}: ${v}`).join(', ');
+                }
+
+                // Update Charts
+                const history = data.history || [];
+                const last20 = history.slice(-20);
+
+                const updateChart = (chart, values) => {
+                    chart.data.datasets[0].data = values;
+                    chart.update('none');
+                };
+
+                updateChart(charts.latency, last20.map(h => h.latency));
+                updateChart(charts.traffic, last20.map((_, i) => i)); // Incremental for traffic sparkline
+                updateChart(charts.cost, last20.map(h => h.cost));
+                updateChart(charts.token, last20.map(h => h.tokens));
+                updateChart(charts.quality, last20.map(h => h.quality));
+
+                // Update timestamp
+                document.getElementById('last-update').innerText = 'Last updated: ' + new Date().toLocaleTimeString();
+                document.getElementById('status-dot').className = 'w-3 h-3 rounded-full bg-green-500 animate-pulse';
+
+            } catch (err) {
+                console.error('Failed to fetch metrics:', err);
+                document.getElementById('status-dot').className = 'w-3 h-3 rounded-full bg-red-500';
+            }
+        }
+
+        setInterval(updateDashboard, 5000);
+        updateDashboard();
+    </script>
+</body>
+
+</html>

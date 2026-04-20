@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import os
+from dotenv import load_dotenv
+
+# MUST be called before any local imports that might use Langfuse
+load_dotenv()
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
 from structlog.contextvars import bind_contextvars
 
 from .agent import LabAgent
@@ -19,6 +24,14 @@ configure_logging()
 log = get_logger()
 app = FastAPI(title="Day 13 Observability Lab")
 app.add_middleware(CorrelationIdMiddleware)
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+@app.get("/dashboard")
+async def dashboard() -> FileResponse:
+    return FileResponse("app/static/index.html")
+
 agent = LabAgent()
 
 
@@ -46,6 +59,13 @@ async def metrics() -> dict:
 async def chat(request: Request, body: ChatRequest) -> ChatResponse:
     # TODO: Enrich logs with request context (user_id_hash, session_id, feature, model, env)
     # bind_contextvars(...)
+    bind_contextvars(
+        user_id_hash=hash_user_id(body.user_id),
+        session_id=body.session_id,
+        feature=body.feature,
+        model="gpt-4o",
+        env=os.getenv("APP_ENV", "dev"),
+    )
     
     log.info(
         "request_received",

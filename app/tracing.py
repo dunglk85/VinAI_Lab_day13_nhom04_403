@@ -4,21 +4,29 @@ import os
 from typing import Any
 
 try:
-    from langfuse.decorators import observe, langfuse_context
-except Exception:  # pragma: no cover
+    # Correct import path for newer Langfuse SDK versions
+    from langfuse import Langfuse, observe
+    
+    # Initialize the Langfuse client if needed
+    langfuse = Langfuse(
+        public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+        secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+        host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+    )
+    
+    if os.getenv("LANGFUSE_PUBLIC_KEY"):
+        print(f"INFO: Langfuse Client Initialized with Host: {os.getenv('LANGFUSE_HOST')}")
+    else:
+        print("WARNING: Langfuse Client: No API keys found.")
+
+except Exception as e:
+    print(f"ERROR: Langfuse SDK initialization error: {str(e)}")
+    langfuse = None
+    # Dummy observe if import fails
     def observe(*args: Any, **kwargs: Any):
         def decorator(func):
             return func
         return decorator
-
-    class _DummyContext:
-        def update_current_trace(self, **kwargs: Any) -> None:
-            return None
-
-        def update_current_observation(self, **kwargs: Any) -> None:
-            return None
-
-    langfuse_context = _DummyContext()
 
 
 def tracing_enabled() -> bool:

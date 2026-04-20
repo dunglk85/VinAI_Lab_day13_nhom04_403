@@ -2,39 +2,52 @@
 
 ## 1. High latency P95
 - Severity: P2
-- Trigger: `latency_p95_ms > 5000 for 30m`
-- Impact: tail latency breaches SLO
+- Trigger: `latency_p95_ms > 3000 for 15m`
+- Impact: Tail latency breaches SLO (3000ms)
 - First checks:
-  1. Open top slow traces in the last 1h
-  2. Compare RAG span vs LLM span
+  1. Open top slow traces in the last 15m
+  2. Compare RAG span vs LLM span to identify the bottleneck
   3. Check if incident toggle `rag_slow` is enabled
 - Mitigation:
-  - truncate long queries
-  - fallback retrieval source
-  - lower prompt size
+  - Truncate long queries or context
+  - Enable fallback retrieval source
+  - Reduce prompt/token limit
 
 ## 2. High error rate
 - Severity: P1
-- Trigger: `error_rate_pct > 5 for 5m`
-- Impact: users receive failed responses
+- Trigger: `error_rate_pct > 2 for 5m`
+- Impact: Users receive failed responses, breaching 2% error SLO
 - First checks:
-  1. Group logs by `error_type`
-  2. Inspect failed traces
-  3. Determine whether failures are LLM, tool, or schema related
+  1. Group logs by `error_type` in the dashboard
+  2. Inspect failed traces for specific trace IDs
+  3. Check if incident toggle `tool_fail` is active
 - Mitigation:
-  - rollback latest change
-  - disable failing tool
-  - retry with fallback model
+  - Rollback latest deployment if applicable
+  - Disable failing tools or features
+  - Switch to a more stable fallback model (e.g., GPT-4o-mini to GPT-4o)
 
 ## 3. Cost budget spike
-- Severity: P2
-- Trigger: `hourly_cost_usd > 2x_baseline for 15m`
-- Impact: burn rate exceeds budget
+- Severity: P3
+- Trigger: `hourly_cost_usd > 0.15 for 30m`
+- Impact: Burn rate exceeds daily budget of $2.5
 - First checks:
-  1. Split traces by feature and model
-  2. Compare tokens_in/tokens_out
+  1. Split traces by feature and model to find expensive requests
+  2. Compare tokens_in vs tokens_out ratios
   3. Check if `cost_spike` incident was enabled
 - Mitigation:
-  - shorten prompts
-  - route easy requests to cheaper model
-  - apply prompt cache
+  - Shorten system prompts
+  - Route non-critical requests to cheaper models
+  - Implement or tune prompt caching
+
+## 4. Low quality score
+- Severity: P2
+- Trigger: `quality_score_avg < 0.75 for 1h`
+- Impact: Output quality is below defined standard
+- First checks:
+  1. Sample traces with low quality scores (eval scores < 0.5)
+  2. Check if prompt templates were recently changed
+  3. Identify if specific topics or queries cause the drop
+- Mitigation:
+  - Revert prompt template changes
+  - Update Retrieval parameters (k-value, reranking)
+  - Refine system instructions for clarity
