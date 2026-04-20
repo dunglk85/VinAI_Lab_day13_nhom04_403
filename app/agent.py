@@ -8,6 +8,7 @@ from .mock_llm import FakeLLM
 from .mock_rag import retrieve
 from .pii import hash_user_id, summarize_text
 from .tracing import observe
+#from .llm_factory import create_llm
 
 
 @dataclass
@@ -24,6 +25,7 @@ class LabAgent:
     def __init__(self, model: str = "claude-sonnet-4-5") -> None:
         self.model = model
         self.llm = FakeLLM(model=model)
+        # self.llm = create_llm(model=model)
 
     @observe(name="agent-chat")
     def run(self, user_id: str, feature: str, session_id: str, message: str) -> AgentResult:
